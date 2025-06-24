@@ -67,22 +67,23 @@ async def universal_handler(message: Message):
         return
 
     for f in results:
-    title = f["name"]
-    category_text = f'{f["category"]} - ' if f["category"] else ""
+        title = f["name"]
+        category_text = f'{f["category"]} - ' if f["category"] else ""
 
-    await message.answer_photo(f["photo"], caption=f'🎬 {category_text}{title}')
+        await message.answer_photo(f["photo"], caption=f'🎬 {category_text}{title}')
 
-    if f["link"].startswith("http"):
-        # Якщо посилання — кнопка
-        buttons = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]
-            ]
-        )
-        await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
-    else:
-        # Якщо це file_id — надсилаємо відео
-        await message.answer_video(f["link"], caption="🎬 Перегляд відео")
+        if f["link"].startswith("http"):
+            # Якщо посилання — кнопка
+            buttons = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]
+                ]
+            )
+            await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
+        else:
+            # Якщо це file_id — надсилаємо відео
+            await message.answer_video(f["link"], caption="🎬 Перегляд відео")
+
 
 
 
