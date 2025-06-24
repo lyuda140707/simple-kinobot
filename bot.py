@@ -56,6 +56,12 @@ async def search_handler(message: Message):
             caption=f'🎬 {f["name"]}\n➡️ <a href="{f["link"]}">Дивитись</a>'
         )
 
+# ⬇️ СЮДИ вставляєш фільтр для отримання file_id ⬇️
+@dp.message_handler(content_types=types.ContentType.VIDEO)
+async def get_file_id(msg: types.Message):
+    file_id = msg.video.file_id
+    await msg.reply(f"🎬 file_id цього відео:\n<code>{file_id}</code>", parse_mode="HTML")
+
 
 async def main():
     await dp.start_polling(bot)
