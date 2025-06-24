@@ -40,8 +40,11 @@ async def start_handler(message: Message):
     await message.answer("🎬 Привіт! Надішли мені назву фільму для пошуку:")
 
 
-@dp.message(lambda message: message.text is not None)
+@dp.message()
 async def search_handler(message: Message):
+    if not message.text:
+        return  # Ігноруємо, якщо тексту немає
+
     query = message.text.lower()
     films = await get_films()
     results = [f for f in films if query in f["name"].lower()]
@@ -57,10 +60,10 @@ async def search_handler(message: Message):
         )
 
 
-@dp.message(lambda message: message.video is not None)
-async def get_file_id(msg: types.Message):
-    file_id = msg.video.file_id
-    await msg.reply(f"🎬 file_id цього відео:\n<code>{file_id}</code>")
+@dp.message(lambda msg: msg.video)
+async def get_file_id_handler(message: Message):
+    file_id = message.video.file_id
+    await message.reply(f"🎬 file_id цього відео:\n<code>{file_id}</code>")
 
 
 async def main():
