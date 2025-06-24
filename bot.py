@@ -24,10 +24,10 @@ menu = ReplyKeyboardMarkup(keyboard=[
 
 
 async def get_films():
+    url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:html"
     async with aiohttp.ClientSession() as session:
-        async with session.get(SPREADSHEET_URL) as resp:
+        async with session.get(url) as resp:
             html = await resp.text()
-            print(html)  # Дивись HTML, якщо треба дебаг
             films = []
             rows = html.split("<tr")[2:]
 
@@ -39,6 +39,7 @@ async def get_films():
                     photo = cols[2].split(">")[1].split("<")[0].strip()
                     films.append({"name": name, "link": link, "photo": photo})
             return films
+
 
 
 @dp.message(Command("start"))
