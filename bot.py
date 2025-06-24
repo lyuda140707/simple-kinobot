@@ -2,17 +2,20 @@ import os
 import logging
 import aiohttp
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
+from aiogram.filters import Command
+from aiogram.types import Message
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SPREADSHEET_URL = os.getenv("SPREADSHEET_URL")
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot)
+bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+dp = Dispatcher()
 logging.basicConfig(level=logging.INFO)
+
 
 async def get_films():
     async with aiohttp.ClientSession() as session:
@@ -30,22 +33,31 @@ async def get_films():
                     films.append({"name": name, "link": link, "photo": photo})
             return films
 
-@dp.message_handler(commands=["start"])
-async def start(msg: types.Message):
-    await msg.reply("🎬 Привіт! Надішли мені назву фільму для пошуку:")
 
-@dp.message_handler()
-async def search(msg: types.Message):
-    query = msg.text.lower()
+@dp.message(Command("start"))
+async def start_handler(message: Message):
+    await message.answer("🎬 Привіт! Надішли мені назву фільму для пошуку:")
+
+
+@dp.message()
+async def search_handler(message: Message):
+    query = message.text.lower()
     films = await get_films()
     results = [f for f in films if query in f["name"].lower()]
 
     if not results:
-        await msg.reply("❗️ Нічого не знайдено")
+        await message.answer("❗️ Нічого не знайдено")
         return
 
     for f in results:
-        await msg.reply_photo(f["photo"], caption=f'🎬 {f["name"]}\n➡️ [Дивитись]({f["link"]})', parse_mode="Markdown")
+        await message.answer_photo(
+            f["photo"],
+            caption=f'🎬 {f["name"]}\n➡️ <a href="{f["link"]}">Дивитись</a>'
+        )
+
+
+async def main():
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    executor.start_polling(dp)
+    asyncio.run(main())
