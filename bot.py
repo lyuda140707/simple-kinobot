@@ -84,21 +84,30 @@ async def universal_handler(message: Message):
             markup = InlineKeyboardMarkup(inline_keyboard=[])
             for i in items:
                 btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{films.index(i)}')
-
                 markup.inline_keyboard.append([btn])
 
             await message.answer(f'📂 {cat} — Обери серію або варіант:', reply_markup=markup)
         return
 
-    # Звичайний пошук по назві
+    # Пошук за назвою з групуванням, якщо є категорія
     results = [f for f in films if query in f["name"].lower() or query in f["category"].lower()]
 
     if not results:
         await message.answer("❗️ Нічого не знайдено")
         return
 
+    grouped = {}
     for f in results:
-        await send_film(message, f)
+        grouped.setdefault(f["category"], []).append(f)
+
+    for cat, items in grouped.items():
+        markup = InlineKeyboardMarkup(inline_keyboard=[])
+        for i in items:
+            btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{films.index(i)}')
+            markup.inline_keyboard.append([btn])
+
+        title_text = cat if cat else "Результати пошуку"
+        await message.answer(f'📂 {title_text} — Обери серію або варіант:', reply_markup=markup)
 
 
 async def send_film(message: Message, film: dict):
@@ -128,19 +137,7 @@ async def handle_buttons(call: types.CallbackQuery):
         await call.message.answer("⚠️ Помилка вибору")
         return
 
-    title = film["name"]
-    category_text = f'{film["category"]} - ' if film["category"] else ""
-
-    await call.message.answer_photo(film["photo"], caption=f'🎬 {category_text}{title}')
-
-    if film["link"].startswith("http"):
-        buttons = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])]]
-        )
-        await call.message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
-    else:
-        await call.message.answer_video(film["link"], caption="🎬 Перегляд відео")
-
+    await send_film(call.message, film)
 
 
 async def main():
