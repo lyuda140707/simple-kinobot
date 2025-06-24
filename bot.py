@@ -7,6 +7,7 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from dotenv import load_dotenv
 import asyncio
 from aiogram.client.default import DefaultBotProperties
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 load_dotenv()
 
@@ -65,10 +66,17 @@ async def universal_handler(message: Message):
         return
 
     for f in results:
-        await message.answer_photo(
-            f["photo"],
-            caption=f'🎬 {f["name"]}\n➡️ <a href="{f["link"]}">Дивитись</a>'
-        )
+    buttons = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]
+        ]
+    )
+
+    await message.answer_photo(
+        f["photo"],
+        caption=f'🎬 {f["name"]}',
+        reply_markup=buttons
+    )
 
 
 async def main():
