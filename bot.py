@@ -137,7 +137,32 @@ async def handle_buttons(call: types.CallbackQuery):
         await call.message.answer("⚠️ Помилка вибору")
         return
 
-    await send_film(call.message, film)
+    title = film["name"]
+    category_text = f'{film["category"]} - ' if film["category"] else ""
+
+    await call.message.answer_photo(film["photo"], caption=f'🎬 {category_text}{title}')
+
+    # Кнопки для навігації по серіях
+    nav_buttons = []
+
+    if idx > 0:
+        nav_buttons.append(InlineKeyboardButton(text="⬅️ Попередня", callback_data=f'play_{idx - 1}'))
+    if idx < len(films) - 1:
+        nav_buttons.append(InlineKeyboardButton(text="➡️ Наступна", callback_data=f'play_{idx + 1}'))
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[])
+
+    if film["link"].startswith("http"):
+        markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
+
+    if nav_buttons:
+        markup.inline_keyboard.append(nav_buttons)
+
+    if film["link"].startswith("http"):
+        await call.message.answer("➡️ Натисни для перегляду:", reply_markup=markup)
+    else:
+        await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
+
 
 
 async def main():
