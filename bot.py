@@ -3,11 +3,10 @@ import logging
 import aiohttp
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 import asyncio
 from aiogram.client.default import DefaultBotProperties
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 load_dotenv()
 
@@ -34,17 +33,18 @@ async def get_films():
 
             for row in rows:
                 cols = row.split("<td")[1:]
-                if len(cols) >= 3:
-                    name = cols[0].split(">")[1].split("<")[0].strip()
-                    link = cols[1].split(">")[1].split("<")[0].strip()
-                    photo = cols[2].split(">")[1].split("<")[0].strip()
-                    films.append({"name": name, "link": link, "photo": photo})
+                if len(cols) >= 4:
+                    category = cols[0].split(">")[1].split("<")[0].strip()
+                    name = cols[1].split(">")[1].split("<")[0].strip()
+                    link = cols[2].split(">")[1].split("<")[0].strip()
+                    photo = cols[3].split(">")[1].split("<")[0].strip()
+                    films.append({"category": category, "name": name, "link": link, "photo": photo})
             return films
 
 
 @dp.message(Command("start"))
 async def start_handler(message: Message):
-    await message.answer("🎬 Обери категорію або надішли назву фільму:", reply_markup=menu)
+    await message.answer("🎬 Обери категорію або надішли назву фільму чи серіалу:", reply_markup=menu)
 
 
 @dp.message()
@@ -59,24 +59,28 @@ async def universal_handler(message: Message):
 
     query = message.text.lower()
     films = await get_films()
-    results = [f for f in films if query in f["name"].lower()]
+
+    results = [f for f in films if query in f["category"].lower() or query in f["name"].lower()]
 
     if not results:
         await message.answer("❗️ Нічого не знайдено")
         return
 
     for f in results:
-    buttons = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]
-        ]
-    )
+        title = f["name"]
+        category_text = f'{f["category"]} - ' if f["category"] else ""
 
-    await message.answer_photo(
-        f["photo"],
-        caption=f'🎬 {f["name"]}',
-        reply_markup=buttons
-    )
+        buttons = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]
+            ]
+        )
+
+        await message.answer_photo(
+            f["photo"],
+            caption=f'🎬 {category_text}{title}',
+            reply_markup=buttons
+        )
 
 
 async def main():
