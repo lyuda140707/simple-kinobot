@@ -60,7 +60,25 @@ async def universal_handler(message: Message):
     query = message.text.lower()
     films = await get_films()
 
-    results = [f for f in films if query in f["category"].lower() or query in f["name"].lower()]
+    # Групування серіалів за категорією
+    categories = {}
+    for f in films:
+        cat = f["category"].lower()
+        if cat:
+            categories.setdefault(cat, []).append(f)
+
+    # Якщо є категорія серіалу
+    if query in categories:
+        markup = InlineKeyboardMarkup(inline_keyboard=[])
+        for f in categories[query]:
+            btn = InlineKeyboardButton(text=f["name"], callback_data=f'play_{f["link"]}')
+            markup.inline_keyboard.append([btn])
+
+        await message.answer(f'🎞 Обери серію "{query.title()}":', reply_markup=markup)
+        return
+
+    # Звичайний пошук по назві
+    results = [f for f in films if query in f["name"].lower()]
 
     if not results:
         await message.answer("❗️ Нічого не знайдено")
@@ -73,22 +91,32 @@ async def universal_handler(message: Message):
         await message.answer_photo(f["photo"], caption=f'🎬 {category_text}{title}')
 
         if f["link"].startswith("http"):
-            # Якщо посилання — кнопка
             buttons = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]
-                ]
+                inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]]
             )
             await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
         else:
-            # Якщо це file_id — надсилаємо відео
             await message.answer_video(f["link"], caption="🎬 Перегляд відео")
 
 
+@dp.callback_query()
+async def handle_buttons(call: types.CallbackQuery):
+    link = call.data.replace("play_", "")
+    await call.answer()
+
+    if link.startswith("http"):
+        buttons = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=link)]]
+        )
+        await call.message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
+    else:
+        await call.message.answer_video(link, caption="🎬 Перегляд відео")
 
 
 async def main():
     await dp.start_polling(bot)
 
+
 if __name__ == "__main__":
     asyncio.run(main())
+
