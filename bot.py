@@ -6,13 +6,14 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from dotenv import load_dotenv
 import asyncio
+from aiogram.client.default import DefaultBotProperties
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SPREADSHEET_URL = os.getenv("SPREADSHEET_URL")
 
-bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher()
 logging.basicConfig(level=logging.INFO)
 
