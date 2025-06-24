@@ -83,7 +83,8 @@ async def universal_handler(message: Message):
         for cat, items in grouped.items():
             markup = InlineKeyboardMarkup(inline_keyboard=[])
             for i in items:
-                btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{i["link"]}')
+                btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{films.index(i)}')
+
                 markup.inline_keyboard.append([btn])
 
             await message.answer(f'📂 {cat} — Обери серію або варіант:', reply_markup=markup)
@@ -117,16 +118,29 @@ async def send_film(message: Message, film: dict):
 
 @dp.callback_query()
 async def handle_buttons(call: types.CallbackQuery):
-    link = call.data.replace("play_", "")
     await call.answer()
+    films = await get_films()
 
-    if link.startswith("http"):
+    try:
+        idx = int(call.data.replace("play_", ""))
+        film = films[idx]
+    except (ValueError, IndexError):
+        await call.message.answer("⚠️ Помилка вибору")
+        return
+
+    title = film["name"]
+    category_text = f'{film["category"]} - ' if film["category"] else ""
+
+    await call.message.answer_photo(film["photo"], caption=f'🎬 {category_text}{title}')
+
+    if film["link"].startswith("http"):
         buttons = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=link)]]
+            inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])]]
         )
         await call.message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
     else:
-        await call.message.answer_video(link, caption="🎬 Перегляд відео")
+        await call.message.answer_video(film["link"], caption="🎬 Перегляд відео")
+
 
 
 async def main():
