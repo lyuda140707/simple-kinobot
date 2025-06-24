@@ -33,18 +33,25 @@ async def get_films():
 
             for row in rows:
                 cols = row.split("<td")[1:]
-                if len(cols) >= 4:
+                if len(cols) >= 5:
                     category = cols[0].split(">")[1].split("<")[0].strip()
                     name = cols[1].split(">")[1].split("<")[0].strip()
                     link = cols[2].split(">")[1].split("<")[0].strip()
                     photo = cols[3].split(">")[1].split("<")[0].strip()
-                    films.append({"category": category, "name": name, "link": link, "photo": photo})
+                    film_type = cols[4].split(">")[1].split("<")[0].strip()
+                    films.append({
+                        "category": category,
+                        "name": name,
+                        "link": link,
+                        "photo": photo,
+                        "type": film_type
+                    })
             return films
 
 
 @dp.message(Command("start"))
 async def start_handler(message: Message):
-    await message.answer("🎬 Обери категорію або надішли назву фільму чи серіалу:", reply_markup=menu)
+    await message.answer("🎬 Обери категорію або напиши назву фільму чи серіалу:", reply_markup=menu)
 
 
 @dp.message()
@@ -60,43 +67,52 @@ async def universal_handler(message: Message):
     query = message.text.lower()
     films = await get_films()
 
-    # Групування серіалів за категорією
-    categories = {}
-    for f in films:
-        cat = f["category"].lower()
-        if cat:
-            categories.setdefault(cat, []).append(f)
+    # Обробка кнопок меню
+    if message.text in ["🎬 Фільми", "🎞 Серіали", "✨ Мультики"]:
+        selected_type = message.text
+        results = [f for f in films if f["type"] == selected_type]
 
-    # Якщо є категорія серіалу
-    if query in categories:
-        markup = InlineKeyboardMarkup(inline_keyboard=[])
-        for f in categories[query]:
-            btn = InlineKeyboardButton(text=f["name"], callback_data=f'play_{f["link"]}')
-            markup.inline_keyboard.append([btn])
+        if not results:
+            await message.answer("❗️ Нічого не знайдено")
+            return
 
-        await message.answer(f'🎞 Обери серію "{query.title()}":', reply_markup=markup)
+        grouped = {}
+        for f in results:
+            grouped.setdefault(f["category"], []).append(f)
+
+        for cat, items in grouped.items():
+            markup = InlineKeyboardMarkup(inline_keyboard=[])
+            for i in items:
+                btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{i["link"]}')
+                markup.inline_keyboard.append([btn])
+
+            await message.answer(f'📂 {cat} — Обери серію або варіант:', reply_markup=markup)
         return
 
     # Звичайний пошук по назві
-    results = [f for f in films if query in f["name"].lower()]
+    results = [f for f in films if query in f["name"].lower() or query in f["category"].lower()]
 
     if not results:
         await message.answer("❗️ Нічого не знайдено")
         return
 
     for f in results:
-        title = f["name"]
-        category_text = f'{f["category"]} - ' if f["category"] else ""
+        await send_film(message, f)
 
-        await message.answer_photo(f["photo"], caption=f'🎬 {category_text}{title}')
 
-        if f["link"].startswith("http"):
-            buttons = InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]]
-            )
-            await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
-        else:
-            await message.answer_video(f["link"], caption="🎬 Перегляд відео")
+async def send_film(message: Message, film: dict):
+    title = film["name"]
+    category_text = f'{film["category"]} - ' if film["category"] else ""
+
+    await message.answer_photo(film["photo"], caption=f'🎬 {category_text}{title}')
+
+    if film["link"].startswith("http"):
+        buttons = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])]]
+        )
+        await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
+    else:
+        await message.answer_video(film["link"], caption="🎬 Перегляд відео")
 
 
 @dp.callback_query()
@@ -119,4 +135,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
