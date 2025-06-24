@@ -149,8 +149,11 @@ async def handle_buttons(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup(inline_keyboard=[])
 
     if film["category"]:
-        # Зібрати серії цього серіалу
-        same_series = [f for f in films if f["category"] == film["category"]]
+        # Групуємо серії, ігноруючи регістр та пробіли
+        same_series = [
+            f for f in films
+            if f["category"].strip().lower() == film["category"].strip().lower()
+        ]
         same_series_indices = [films.index(f) for f in same_series]
         current_pos = same_series_indices.index(idx)
 
@@ -172,12 +175,13 @@ async def handle_buttons(call: types.CallbackQuery):
             await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
 
     else:
-        # Не серіал — просто показати
+        # Звичайне відео
         if film["link"].startswith("http"):
             markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
             await call.message.answer("➡️ Натисни для перегляду:", reply_markup=markup)
         else:
             await call.message.answer_video(film["link"], caption="🎬 Перегляд відео")
+
 
 
 
