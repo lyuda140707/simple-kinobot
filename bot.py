@@ -73,7 +73,7 @@ async def universal_handler(message: Message):
     await message.answer_photo(f["photo"], caption=f'🎬 {category_text}{title}')
 
     if f["link"].startswith("http"):
-        # Посилання — вставляємо кнопку
+        # Якщо посилання — кнопка
         buttons = InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="➡️ Дивитись", url=f["link"])]
@@ -81,8 +81,9 @@ async def universal_handler(message: Message):
         )
         await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
     else:
-        # Це file_id відео — надсилаємо відео
+        # Якщо це file_id — надсилаємо відео
         await message.answer_video(f["link"], caption="🎬 Перегляд відео")
+
 
 
 async def main():
