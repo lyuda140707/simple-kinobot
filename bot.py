@@ -11,7 +11,7 @@ from aiogram.client.default import DefaultBotProperties
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-SPREADSHEET_URL = os.getenv("SPREADSHEET_URL")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher()
@@ -39,7 +39,6 @@ async def get_films():
                     photo = cols[2].split(">")[1].split("<")[0].strip()
                     films.append({"name": name, "link": link, "photo": photo})
             return films
-
 
 
 @dp.message(Command("start"))
