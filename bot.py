@@ -142,26 +142,43 @@ async def handle_buttons(call: types.CallbackQuery):
 
     await call.message.answer_photo(film["photo"], caption=f'🎬 {category_text}{title}')
 
-    # Кнопки для навігації по серіях
-    nav_buttons = []
+    # Фільтруємо серії лише по категорії (серіал)
+    same_series = [f for f in films if f["category"] == film["category"]]
 
-    if idx > 0:
-        nav_buttons.append(InlineKeyboardButton(text="⬅️ Попередня", callback_data=f'play_{idx - 1}'))
-    if idx < len(films) - 1:
-        nav_buttons.append(InlineKeyboardButton(text="➡️ Наступна", callback_data=f'play_{idx + 1}'))
+    if film["category"]:
+        # Індекс серії серед лише цього серіалу
+        same_series_indices = [films.index(f) for f in same_series]
+        current_pos = same_series_indices.index(idx)
 
-    markup = InlineKeyboardMarkup(inline_keyboard=[])
+        nav_buttons = []
+        if current_pos > 0:
+            nav_buttons.append(InlineKeyboardButton(text="⬅️ Попередня", callback_data=f'play_{same_series_indices[current_pos - 1]}'))
+        if current_pos < len(same_series) - 1:
+            nav_buttons.append(InlineKeyboardButton(text="➡️ Наступна", callback_data=f'play_{same_series_indices[current_pos + 1]}'))
 
-    if film["link"].startswith("http"):
-        markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
+        markup = InlineKeyboardMarkup(inline_keyboard=[])
 
-    if nav_buttons:
-        markup.inline_keyboard.append(nav_buttons)
+        if film["link"].startswith("http"):
+            markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
 
-    if film["link"].startswith("http"):
-        await call.message.answer("➡️ Натисни для перегляду:", reply_markup=markup)
+        if nav_buttons:
+            markup.inline_keyboard.append(nav_buttons)
+
+        if film["link"].startswith("http"):
+            await call.message.answer("➡️ Натисни для перегляду:", reply_markup=markup)
+        else:
+            await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
+
     else:
-        await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
+        # Якщо це не серіал, показуємо лише кнопку Дивитись або відео
+        if film["link"].startswith("http"):
+            buttons = InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])]]
+            )
+            await call.message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
+        else:
+            await call.message.answer_video(film["link"], caption="🎬 Перегляд відео")
+
 
 
 
