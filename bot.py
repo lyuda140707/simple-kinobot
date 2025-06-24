@@ -40,7 +40,7 @@ async def start_handler(message: Message):
     await message.answer("🎬 Привіт! Надішли мені назву фільму для пошуку:")
 
 
-@dp.message()
+@dp.message(lambda message: message.text is not None)
 async def search_handler(message: Message):
     query = message.text.lower()
     films = await get_films()
