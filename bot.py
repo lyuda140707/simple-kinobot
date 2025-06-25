@@ -82,18 +82,18 @@ async def universal_handler(message: Message):
             await message.answer("❗️ Нічого не знайдено")
             return
 
-        grouped = {}
+        unique_categories = {}
         for f in results:
-            if not f["category"]:
-                continue
-            grouped.setdefault(f["category"], []).append(f)
+            if f["category"]:
+                unique_categories[f["category"]] = f
 
-        for cat, items in grouped.items():
-            markup = InlineKeyboardMarkup(inline_keyboard=[])
-            for i in items:
-                btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{films.index(i)}')
-                markup.inline_keyboard.append([btn])
-            await message.answer(f'📂 {cat} — Обери серію або варіант:', reply_markup=markup)
+        markup = InlineKeyboardMarkup(inline_keyboard=[])
+
+        for cat in unique_categories.keys():
+            btn = InlineKeyboardButton(text=cat, callback_data=f'category_{cat}')
+            markup.inline_keyboard.append([btn])
+
+        await message.answer(f'📂 {selected_type} — Обери фільм або серіал:', reply_markup=markup)
         return
 
     results = [f for f in films if query in f["name"].lower() or query in f["category"].lower()]
@@ -117,33 +117,31 @@ async def universal_handler(message: Message):
         await message.answer(f'📂 {title_text} — Обери серію або варіант:', reply_markup=markup)
 
 
-async def send_film(message: Message, film: dict):
-    title = film["name"]
-    category_text = f'{film["category"]} - ' if film["category"] else ""
-    text = f'🎬 {category_text}{title}'
-
-    if film["photo"]:
-        await message.answer_photo(film["photo"], caption=text)
-    else:
-
-        await message.answer(text)
-    if film["link"].startswith("http"):
-        buttons = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])]]
-        )
-        await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
-    elif film["link"]:  # навіть якщо немає фото, але є file_id відео
-        await message.answer_video(film["link"], caption="🎬 Перегляд відео")
-            
-        
-
-
-
-
 @dp.callback_query()
 async def handle_buttons(call: types.CallbackQuery):
     await call.answer()
     films = await get_films()
+
+    if call.data.startswith("category_"):
+        category_name = call.data.replace("category_", "")
+        same_series = [f for f in films if f["category"].strip().lower() == category_name.strip().lower()]
+
+        if not same_series:
+            await call.message.answer("⚠️ Серії не знайдено")
+            return
+
+        markup = InlineKeyboardMarkup(inline_keyboard=[])
+
+        for f in same_series:
+            btn = InlineKeyboardButton(text=f["name"], callback_data=f'play_{films.index(f)}')
+            markup.inline_keyboard.append([btn])
+
+        await call.message.answer(f'📂 {category_name} — Обери серію або варіант:', reply_markup=markup)
+        return
+
+    if call.data == "back_to_menu":
+        await call.message.answer("🔝 Головне меню:", reply_markup=menu)
+        return
 
     if not call.data.startswith("play_"):
         await call.message.answer("⚠️ Невідомий запит")
@@ -189,8 +187,11 @@ async def handle_buttons(call: types.CallbackQuery):
         await call.message.answer(text, reply_markup=markup)
     if not film["link"].startswith("http") and film["link"]:
         await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
-       
-    await call.message.answer("🏠 Повернутись у головне меню:", reply_markup=menu)
+
+    markup_back = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏠 Головне меню", callback_data="back_to_menu")]
+    ])
+    await call.message.answer("🏠 Повернутись у головне меню:", reply_markup=markup_back)
 
 
 async def main():
