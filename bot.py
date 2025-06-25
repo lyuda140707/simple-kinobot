@@ -115,7 +115,14 @@ async def send_film(message: Message, film: dict):
     title = film["name"]
     category_text = f'{film["category"]} - ' if film["category"] else ""
 
-    await message.answer_photo(film["photo"], caption=f'🎬 {category_text}{title}')
+    text = f'🎬 {category_text}{title}'
+
+    if film["photo"].startswith("http"):
+        await message.answer_photo(film["photo"], caption=text)
+    elif film["photo"]:  # якщо це file_id зображення
+        await message.answer_photo(film["photo"], caption=text)
+    else:
+        await message.answer(text)
 
     if film["link"].startswith("http"):
         buttons = InlineKeyboardMarkup(
@@ -124,6 +131,7 @@ async def send_film(message: Message, film: dict):
         await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
     else:
         await message.answer_video(film["link"], caption="🎬 Перегляд відео")
+
 
 
 @dp.callback_query()
