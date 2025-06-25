@@ -37,7 +37,9 @@ async def get_films():
                     category = cols[0].split(">")[1].split("<")[0].replace("&nbsp;", "").strip()
                     name = cols[1].split(">")[1].split("<")[0].strip()
                     link = cols[2].split(">")[1].split("<")[0].strip()
-                    photo = cols[3].split(">")[1].split("<")[0].strip()
+                    raw_photo = cols[3].split(">")[1].split("<")[0].strip()
+                    photo = raw_photo if raw_photo else None
+
                     film_type = cols[4].split(">")[1].split("<")[0].strip()
                     films.append({
                         "category": category,
@@ -54,6 +56,9 @@ async def get_films():
 async def start_handler(message: Message):
     await message.answer("🎬 Обери категорію або напиши назву фільму чи серіалу:", reply_markup=menu)
 
+@dp.message(Command("menu"))
+async def menu_handler(message: Message):
+    await message.answer("🔝 Головне меню:", reply_markup=menu)
 
 @dp.message()
 async def universal_handler(message: Message):
@@ -114,12 +119,9 @@ async def universal_handler(message: Message):
 async def send_film(message: Message, film: dict):
     title = film["name"]
     category_text = f'{film["category"]} - ' if film["category"] else ""
-
     text = f'🎬 {category_text}{title}'
 
-    if film["photo"].startswith("http"):
-        await message.answer_photo(film["photo"], caption=text)
-    elif film["photo"]:  # якщо це file_id зображення
+    if film["photo"]:
         await message.answer_photo(film["photo"], caption=text)
     else:
         await message.answer(text)
@@ -131,6 +133,9 @@ async def send_film(message: Message, film: dict):
         await message.answer("➡️ Натисни для перегляду:", reply_markup=buttons)
     else:
         await message.answer_video(film["link"], caption="🎬 Перегляд відео")
+
+    await message.answer("🔝 Повернутись до головного меню:", reply_markup=menu)
+
 
 
 
@@ -152,13 +157,11 @@ async def handle_buttons(call: types.CallbackQuery):
 
     title = film["name"]
     category_text = f'{film["category"]} - ' if film["category"] else ""
-
-    await call.message.answer_photo(film["photo"], caption=f'🎬 {category_text}{title}')
+    text = f'🎬 {category_text}{title}'
 
     markup = InlineKeyboardMarkup(inline_keyboard=[])
 
     if film["category"]:
-        # Групуємо серії, ігноруючи регістр та пробіли
         same_series = [
             f for f in films
             if f["category"].strip().lower() == film["category"].strip().lower()
@@ -178,18 +181,21 @@ async def handle_buttons(call: types.CallbackQuery):
         if nav_buttons:
             markup.inline_keyboard.append(nav_buttons)
 
+    else:
         if film["link"].startswith("http"):
-            await call.message.answer("➡️ Натисни для перегляду:", reply_markup=markup)
+            markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
+
+    # Показ контенту
+    if film["photo"]:
+        await call.message.answer_photo(film["photo"], caption=text, reply_markup=markup)
+    else:
+        if film["link"].startswith("http"):
+            await call.message.answer(text, reply_markup=markup)
         else:
             await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
 
-    else:
-        # Звичайне відео
-        if film["link"].startswith("http"):
-            markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
-            await call.message.answer("➡️ Натисни для перегляду:", reply_markup=markup)
-        else:
-            await call.message.answer_video(film["link"], caption="🎬 Перегляд відео")
+    # Повернутись до меню
+    await call.message.answer("🏠 Повернутись у головне меню:", reply_markup=menu)
 
 
 
