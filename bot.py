@@ -40,7 +40,6 @@ async def get_films():
                     link = cols[2].split(">")[1].split("<")[0].strip()
                     raw_photo = cols[3].split(">")[1].split("<")[0].strip()
                     photo = raw_photo if raw_photo else None
-
                     film_type = cols[4].split(">")[1].split("<")[0].strip()
                     films.append({
                         "category": category,
@@ -52,14 +51,15 @@ async def get_films():
             return films
 
 
-
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer("🎬 Обери категорію або напиши назву фільму чи серіалу:", reply_markup=menu)
 
+
 @dp.message(Command("menu"))
 async def menu_handler(message: Message):
     await message.answer("🔝 Головне меню:", reply_markup=menu)
+
 
 @dp.message()
 async def universal_handler(message: Message):
@@ -74,7 +74,6 @@ async def universal_handler(message: Message):
     query = message.text.lower()
     films = await get_films()
 
-    # Обробка кнопок меню
     if message.text in ["🎬 Фільми", "🎞 Серіали", "✨ Мультики"]:
         selected_type = message.text
         results = [f for f in films if f["type"] == selected_type]
@@ -85,6 +84,8 @@ async def universal_handler(message: Message):
 
         grouped = {}
         for f in results:
+            if not f["category"]:
+                continue
             grouped.setdefault(f["category"], []).append(f)
 
         for cat, items in grouped.items():
@@ -92,11 +93,9 @@ async def universal_handler(message: Message):
             for i in items:
                 btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{films.index(i)}')
                 markup.inline_keyboard.append([btn])
-
             await message.answer(f'📂 {cat} — Обери серію або варіант:', reply_markup=markup)
         return
 
-    # Пошук за назвою з групуванням, якщо є категорія
     results = [f for f in films if query in f["name"].lower() or query in f["category"].lower()]
 
     if not results:
@@ -105,9 +104,10 @@ async def universal_handler(message: Message):
 
     grouped = {}
     for f in results:
-        if not f["name"]:
-            continue  # Пропускаємо, якщо немає назви (кнопка без тексту)
+        if not f["name"] or not f["category"]:
+            continue
         grouped.setdefault(f["category"], []).append(f)
+
     for cat, items in grouped.items():
         markup = InlineKeyboardMarkup(inline_keyboard=[])
         for i in items:
@@ -115,7 +115,6 @@ async def universal_handler(message: Message):
             markup.inline_keyboard.append([btn])
         title_text = cat if cat else "Результати пошуку"
         await message.answer(f'📂 {title_text} — Обери серію або варіант:', reply_markup=markup)
-
 
 
 async def send_film(message: Message, film: dict):
@@ -137,8 +136,6 @@ async def send_film(message: Message, film: dict):
         await message.answer_video(film["link"], caption="🎬 Перегляд відео")
 
     await message.answer("🔝 Повернутись до головного меню:", reply_markup=menu)
-
-
 
 
 @dp.callback_query()
@@ -164,10 +161,7 @@ async def handle_buttons(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup(inline_keyboard=[])
 
     if film["category"]:
-        same_series = [
-            f for f in films
-            if f["category"].strip().lower() == film["category"].strip().lower()
-        ]
+        same_series = [f for f in films if f["category"].strip().lower() == film["category"].strip().lower()]
         same_series_indices = [films.index(f) for f in same_series]
         current_pos = same_series_indices.index(idx)
 
@@ -187,7 +181,6 @@ async def handle_buttons(call: types.CallbackQuery):
         if film["link"].startswith("http"):
             markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
 
-    # Показ контенту
     if film["photo"]:
         await call.message.answer_photo(film["photo"], caption=text, reply_markup=markup)
     else:
@@ -196,11 +189,7 @@ async def handle_buttons(call: types.CallbackQuery):
         else:
             await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
 
-    # Повернутись до меню
     await call.message.answer("🏠 Повернутись у головне меню:", reply_markup=menu)
-
-
-
 
 
 async def main():
