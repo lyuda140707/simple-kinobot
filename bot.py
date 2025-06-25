@@ -34,7 +34,7 @@ async def get_films():
             for row in rows:
                 cols = row.split("<td")[1:]
                 if len(cols) >= 5:
-                    category = cols[0].split(">")[1].split("<")[0].replace("&nbsp;", "").strip()
+                    category = unescape(cols[0].split(">")[1].split("<")[0]).replace("\xa0", "").strip()
                     name = cols[1].split(">")[1].split("<")[0].strip()
                     link = cols[2].split(">")[1].split("<")[0].strip()
                     raw_photo = cols[3].split(">")[1].split("<")[0].strip()
@@ -104,16 +104,17 @@ async def universal_handler(message: Message):
 
     grouped = {}
     for f in results:
+        if not f["name"]:
+            continue  # Пропускаємо, якщо немає назви (кнопка без тексту)
         grouped.setdefault(f["category"], []).append(f)
-
     for cat, items in grouped.items():
         markup = InlineKeyboardMarkup(inline_keyboard=[])
         for i in items:
             btn = InlineKeyboardButton(text=i["name"], callback_data=f'play_{films.index(i)}')
             markup.inline_keyboard.append([btn])
-
         title_text = cat if cat else "Результати пошуку"
         await message.answer(f'📂 {title_text} — Обери серію або варіант:', reply_markup=markup)
+
 
 
 async def send_film(message: Message, film: dict):
