@@ -130,6 +130,34 @@ async def handle_buttons(call: types.CallbackQuery):
             await call.message.answer("⚠️ Серії не знайдено")
             return
 
+        if len(same_series) == 1:
+            # Одразу відкриваємо фільм або мульт
+            film = same_series[0]
+
+            title = film["name"]
+            category_text = f'{film["category"]} - ' if film["category"] else ""
+            text = f'🎬 {category_text}{title}'
+
+            markup = InlineKeyboardMarkup(inline_keyboard=[])
+
+            if film["link"].startswith("http"):
+                markup.inline_keyboard.append([InlineKeyboardButton(text="➡️ Дивитись", url=film["link"])])
+
+            if film["photo"]:
+                await call.message.answer_photo(film["photo"], caption=text, reply_markup=markup)
+            else:
+                await call.message.answer(text, reply_markup=markup)
+
+            if not film["link"].startswith("http") and film["link"]:
+                await call.message.answer_video(film["link"], caption="🎬 Перегляд відео", reply_markup=markup)
+
+            markup_back = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🏠 Головне меню", callback_data="back_to_menu")]
+            ])
+            await call.message.answer("🏠 Повернутись у головне меню:", reply_markup=markup_back)
+            return
+
+        # Якщо більше одного варіанту — показуємо кнопки
         markup = InlineKeyboardMarkup(inline_keyboard=[])
 
         for f in same_series:
