@@ -38,7 +38,9 @@ async def get_films():
                     category = unescape(cols[0].split(">")[1].split("<")[0]).replace("\xa0", "").strip()
                     name = cols[1].split(">")[1].split("<")[0].strip()
                     link = cols[2].split(">")[1].split("<")[0].strip()
-                    raw_photo = cols[3].split(">")[1].split("<")[0].strip()
+                    photo = ""
+                    if len(cols[3].split(">")) > 1:
+                        photo = cols[3].split(">")[1].split("<")[0].strip()
                     photo = raw_photo if raw_photo else None
                     film_type = cols[4].split(">")[1].split("<")[0].strip()
                     films.append({
@@ -83,10 +85,7 @@ async def universal_handler(message: Message):
             return
 
         grouped = {}
-        for f in results:
-            if not f["category"]:
-                continue
-            grouped.setdefault(f["category"], []).append(f)
+        
 
         for cat, items in grouped.items():
             markup = InlineKeyboardMarkup(inline_keyboard=[])
