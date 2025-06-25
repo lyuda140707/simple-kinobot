@@ -7,6 +7,7 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKe
 from dotenv import load_dotenv
 import asyncio
 from aiogram.client.default import DefaultBotProperties
+from html import unescape
 
 load_dotenv()
 
