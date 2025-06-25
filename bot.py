@@ -34,7 +34,7 @@ async def get_films():
             for row in rows:
                 cols = row.split("<td")[1:]
                 if len(cols) >= 5:
-                    category = cols[0].split(">")[1].split("<")[0].strip()
+                    category = cols[0].split(">")[1].split("<")[0].replace("&nbsp;", "").strip()
                     name = cols[1].split(">")[1].split("<")[0].strip()
                     link = cols[2].split(">")[1].split("<")[0].strip()
                     photo = cols[3].split(">")[1].split("<")[0].strip()
@@ -47,6 +47,7 @@ async def get_films():
                         "type": film_type
                     })
             return films
+
 
 
 @dp.message(Command("start"))
